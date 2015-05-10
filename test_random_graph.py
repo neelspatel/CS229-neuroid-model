@@ -12,17 +12,18 @@ appropriate_ds = []
 #degrees = [32, 64, 128, 256, 512, 1024]
 degrees = [32, 64, 128, 256]
 
-with open("size_degree_r.txt", "w+") as outfile:
+with open("random_size_degree.txt", "w+") as outfile:
 	for size in sizes:
 		for degree in degrees:
-			current_graph = gen_graph.read_test_graph(size, degree)
+			current_graph = gen_graph.gen_random_graph_vertices(size, size, degree)
 			for r in [float(x) * 0.01 for x in range(1,20)]:
-			
+							
 				results = simple_graph.testPotentialOverlap(graph=current_graph, l = size, w = size, degree = degree, r = size * size * r, n = 100)
 				size_and_degree[(size, degree, r)] = results
 				
 				row_to_write = map(str,[size, degree, r] + results)
 
 				outfile.write("\t".join(row_to_write))
-
+				outfile.write("\n")
+				
 

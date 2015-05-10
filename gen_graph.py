@@ -92,6 +92,53 @@ def gen_graph_vertices(l, w, degree):
 
     return incoming_vertices, outgoing_vertices
 
+def gen_random_graph(l, w, degree):
+    """
+    generate a random graph
+    """
+    graph = Graph()
+
+    num_points = l * w
+    pts = np.arange(num_points)    
+
+    for i in range(num_points):
+        # add the appropriate vertices
+        x, y = i % w, i / l
+        
+        verts = np.random.choice(pts, degree)
+
+        for v in verts:            
+            graph.addEdge((v/w, v%w), (x, y))
+    return graph
+
+def gen_random_graph_vertices(l, w, degree):
+    """
+    generate a graph from grid using the probability distribution above 
+    """    
+    incoming_vertices = {}
+    outgoing_vertices = {}
+
+    num_points = l * w
+    pts = np.arange(num_points)
+
+    for i in range(num_points):
+        # add the appropriate vertices
+        x, y = i % w, i / l
+        verts = np.random.choice(pts, degree)
+
+        for v in verts:      
+            if i not in outgoing_vertices:                
+                outgoing_vertices[i] = {v: 1}
+            else:
+                outgoing_vertices[i][v] = 1
+
+            if v not in incoming_vertices:
+                incoming_vertices[v] = {i: 1}
+            else:
+                incoming_vertices[v][i] = 1
+
+    return incoming_vertices, outgoing_vertices
+
 #returns edges and vertices
 def gen_graph_edges(l, w, degree):
     """
