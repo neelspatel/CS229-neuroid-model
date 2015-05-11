@@ -193,6 +193,8 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     num_successful_on = 0.0
     num_successful_off = 0.0
 
+    mem_1_results = []
+    mem_2_results = []
     for i in range(num_iterations):
 
         #choose a random association   
@@ -210,11 +212,16 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
         mem_item = memorizations[(item1, item2)]
         mem_on_results += simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
         mem_off_results += simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
-                
+               
+        mem_1_results += simulate_memorization_off_aux(graph, weights, item1, item2, mem_item, 
+                                                        items, r, num_aux = 1, fire_thresh, trials=num_checks)
   
+        mem_2_results += simulate_memorization_off_aux(graph, weights, item1, item2, mem_item, 
+                                                        items, r, num_aux = 2, fire_thresh, trials=num_checks)
+
     #return num_failed_associations/(num_failed_associations+num_associations), sum(on_results)/float(len(on_results)), sum(off_results)/float(len(off_results)), sum(mem_on_results)/float(len(mem_on_results)), sum(mem_off_results)/float(len(mem_off_results))
 
-    return num_failed_associations, on_results, off_results, off_1_results, off_2_results, mem_on_results, mem_off_results
+    return num_failed_associations, on_results, off_results, off_1_results, off_2_results, mem_on_results, mem_off_results, mem_1_results, mem_2_results
 
 
 #returns True of False based on if there is a simulated association between fromItem and toItem
