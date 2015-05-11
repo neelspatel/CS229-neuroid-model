@@ -56,7 +56,6 @@ def read_test_graph(size, degree):
     outgoing_vertices = pickle.load(open("graphs/" + str(size) + "_" + str(degree) + "_outgoing_vertices.p", "rb"))    
     return incoming_vertices, outgoing_vertices
 
-
 def gen_graph_vertices(l, w, degree):
     """
     generate a graph from grid using the probability distribution above 
