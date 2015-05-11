@@ -2,6 +2,7 @@ import numpy as np
 import time
 import gen_graph
 import random
+import copy 
 
 def sample_r_randomly(vertices, r):
     idx = np.random.choice(len(vertices), r)   
@@ -396,8 +397,11 @@ def make_memorization(graph, weights, item1, item2, items, r, max_synapse_streng
         return graph, weights, None, items
     return graph, weights, mem_item_index, items
 
-
 def test_memorization_overlap(graph=None, l = 100, w = 100, degree = 100, r = 200, n = 1):
+    """
+    given a graph, picks n random items and tries to form their memorizations
+    records if a memorization is possible 
+    """
     if graph:
         incoming_vertices, outgoing_vertices = graph
     else:
@@ -418,3 +422,21 @@ def test_memorization_overlap(graph=None, l = 100, w = 100, degree = 100, r = 20
             overlaps[i] = False
     return overlaps
 
+def test_association_noise(graph, weights, items, associations, num_aux_items, r):
+    """
+    want to turn on num_aux_items irrelevent items, for every item that should not be turned on, is it not actually turned on?
+    """
+    aux_items = np.random.choice(items.keys(), num_aux_items)
+    unassociated_items = set(copy.copy(items.keys()))
+    firing_vertices = set([])
+    for aux_item in aux_items:
+        firing_vertices = set.union(firing_vertices, fire_item(items[aux_item]))
+        # want to find the items that are not in associations[item] for any item 
+        for item in associations[aux_item]:
+            unassociated_items.discard(item)
+    overlap = []
+    # what percentage of the neurons in these items are turned on
+    new_firing_vertices = get_active_set(graph, firing_vertices, weights)
+    for unassoc_item in unassociated_items:
+        overlap.append(len(set.intersect(new_firing_vertices, items[unassoc_item])))
+    return overlap
