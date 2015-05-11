@@ -80,9 +80,9 @@ def getActiveItems(vertices, items, threshold=0.8):
 
         overlap = vertices_set.intersection(item_vertices)  
 
-        #if more than threshold percentage of the neurons in this item
+        #if more than threshold percentage of the vertices in this item
         #are firing
-        if len(overlap)/len(item_vertices) > threshold:
+        if len(overlap)/float(len(item_vertices)) > threshold:
             active_items.append(item)
 
     return active_items
@@ -104,7 +104,6 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     
     elapsed = time.time() - start
     print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
-
 
     points = np.arange(l*w)
 
@@ -134,7 +133,6 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     firing_vertices = fire_item(items[random_item], fire_thresh)
 
     for i in range(timesteps):     
-
         #gets the list of associated items for each currently firing item
         associated_items = []
         for x in firing_items:
@@ -144,12 +142,10 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
         #gets the next set of firing vertices
         firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices)
 
-        print len(firing_vertices)
-
         #gets the list of items from the associated firing vertices
         firing_items = set(getActiveItems(firing_vertices, items))
         
-        print len(firing_items.intersection(associated_items)), len(firing_items)
+        print len(firing_vertices), len(associated_items), len(firing_items.intersection(associated_items)), len(firing_items)
 
         
 
