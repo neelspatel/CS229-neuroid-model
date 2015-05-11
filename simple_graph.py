@@ -74,7 +74,7 @@ def get_active_set(graph, firing_vertices, threshold = 5):
     threshold, min number of active neighbors
     returns the set of nodes that are firing at next time point
     """
-    outgoing_vertices, incoming_vertices = graph
+    incoming_vertices, outgoing_vertices =  graph
     next_firing = set([])
     thresh = {}
     for vert in firing_vertices:
@@ -82,8 +82,49 @@ def get_active_set(graph, firing_vertices, threshold = 5):
             if cur_vert not in next_firing:
                 #TODO add weight logic
                 # thresh[cur_vert] += weight_ougoing_vertices[vert][cur_vert]
-                thresh[cur_vert] += 1
+                try: 
+                    thresh[cur_vert] += 1
+                except KeyError:
+                    thresh[cur_vert] = 1
                 if thresh[cur_vert] >= threshold:
                     next_firing.add(cur_vert)
     return next_firing
 
+def fire_item(item, fire_thresh = 0.85):
+    """
+    returns a random set of fire_thresh nodes to fire for an item 
+    """
+    num_verts = int(len(item) * fire_thresh)
+    return set(list(np.random.choice(np.array(list(item)), num_verts, replace=False)))
+
+def test_memorization(graph, item1, item2, items, r):
+    """
+    returns list of nodes that can be activated by item1 and item 2
+    if not possible, returns None
+    """
+    item1_actives = get_active_set(graph, fire_item(items[item1]))
+    item2_actives = get_active_set(graph, fire_item(items[item2]))
+    candidate_verts = intersection(item1_actives, item2_active)
+    if len(candidate_verts) >= r:
+        return candidate_verts
+    else:
+        return None
+
+def memorize(graph, item1, item2, items, r):
+    """
+    returns a set of vertices that can serve as the conjunction of items 1 and 2
+    does not need to modify graph, since weights are max 
+    """
+    candidate_verts = test_memorization(graph, item1, item2, items, r)
+    if candidate_verts:
+        return set(list(candidate_verts[:r]))
+    else:
+        return None
+
+def test_association(graph, item1, item2, items):
+    item1_actives = get_active_set(graph, items[item1])
+    if item2 in get_active_items(item1_actives, items):
+        return True
+    else:
+        return False
+     
