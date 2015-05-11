@@ -94,6 +94,11 @@ def getActiveItems(vertices, items, threshold=0.8):
 #create amount of random associations (from one item id to another item id)
 #function that creates association: turn on this item, keep dictionary of items
 #and items that they are associated with
+
+#to test the simulation:
+# - generate a graph, and a random two items, which we will associate
+# - for each trial, turn on 80% of the first item randomly, check if the second item is on
+
 def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, timesteps=50, max_weight=10):
     start = time.time()
     
