@@ -94,7 +94,7 @@ def getActiveItems(vertices, items, threshold=0.8):
 #create amount of random associations (from one item id to another item id)
 #function that creates association: turn on this item, keep dictionary of items
 #and items that they are associated with
-def simulation(graph=None, l = 100, w = 100, degree = 100, r = 1000, fire_thresh=0.85, num_items=2, num_associations=2, timesteps=50):
+def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, timesteps=50, max_weight=10):
     start = time.time()
     
     if graph:
@@ -102,6 +102,12 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 1000, fire_thresh
     else:
         incoming_vertices, outgoing_vertices = gen_graph.gen_graph_vertices(l,w,degree)
     
+    weights = {}
+
+    for coordinate in outgoing_vertices:
+        for connection in outgoing_vertices[coordinate]:
+            weights[(coordinate, connection)] = 1
+
     elapsed = time.time() - start
     print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
 
@@ -123,6 +129,16 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 1000, fire_thresh
             associations[fromItem] = []
         associations[fromItem].append(toItem)
 
+        #maxes the edge weight for each vertex combination
+        fromItemVertices = items[fromItem]
+        toItemVertices = items[toItem]
+
+        for fromItemVertex in fromItemVertices:
+            for toItemVertex in toItemVertices:
+                weights[(fromItemVertex, toItemVertex)] = max_weight
+
+
+
     #runs the simulation for each time step
 
     #start with a random item, and fire its vertices    
@@ -138,7 +154,7 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 1000, fire_thresh
         associated_items = set(associated_items)
 
         #gets the next set of firing vertices
-        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices)
+        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices, weights)
 
         #gets the list of items from the associated firing vertices
         firing_items = set(getActiveItems(firing_vertices, items))
@@ -146,7 +162,7 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 1000, fire_thresh
 
 
 
-def get_active_set(graph, firing_vertices, threshold = 5):
+def get_active_set(graph, firing_vertices, weights, threshold = 50):
     """
     runs the simulation for one time point, with the firing_vertices being the list/set of nodes that are active in the current time point
     threshold, min number of active neighbors
@@ -161,9 +177,9 @@ def get_active_set(graph, firing_vertices, threshold = 5):
                 #TODO add weight logic
                 # thresh[cur_vert] += weight_ougoing_vertices[vert][cur_vert]
                 try: 
-                    thresh[cur_vert] += 1
+                    thresh[cur_vert] += weights[(vert, cur_vert)]
                 except KeyError:
-                    thresh[cur_vert] = 1
+                    thresh[cur_vert] = weights[(vert, cur_vert)]
                 if thresh[cur_vert] >= threshold:
                     next_firing.add(cur_vert)
     return next_firing
