@@ -170,6 +170,8 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
 
 
     #runs the simulation
+    on_results = []
+    off_results = []
     num_successful_on = 0.0
     num_successful_off = 0.0
 
@@ -180,10 +182,11 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
         fromItem, toItem = associationsList[random_association_index]
 
         
-        num_successful_on += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
-        num_successful_off += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
+        on_results += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
+        off_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
 
-    return num_failed_associations/(num_failed_associations+num_associations), num_successful_on/(num_iterations * num_checks), num_successful_off/(num_iterations * num_checks)
+    #return num_failed_associations/(num_failed_associations+num_associations), num_successful_on/(num_iterations * num_checks), num_successful_off/(num_iterations * num_checks)
+    return num_failed_associations/(num_failed_associations+num_associations), sum(on_results)/float(len(on_results)), sum(off_results)/float(len(off_results))
 
 
 
@@ -212,13 +215,13 @@ def simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh
 
         #calculates the amount of vertices firing
         correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
-        overlap_amount += correctly_firing
 
         overlaps.append(correctly_firing)
 
     #checks if item 2 was identified as associated
     #return num_successful_checks
-    return overlap_amount
+    #return overlap_amount
+    return overlaps
 
 #returns True of False based on if there is not a simulated association between fromItem and toItem
 def simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh=0.85, threshold=20, num_other_items=0, num_checks=20):
@@ -268,10 +271,11 @@ def simulate_association_off(graph, weights, fromItem, toItem, items, associatio
 
         #calculates the amount of vertices firing
         correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
-        overlap_amount += correctly_firing
+        overlaps.append(correctly_firing)
 
     #return num_successful_checks
-    return overlap_amount
+    #return overlap_amount
+    return overlaps
 
 
 def simulate_one(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, max_weight=10):
