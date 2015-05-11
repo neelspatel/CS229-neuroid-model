@@ -98,7 +98,184 @@ def getActiveItems(vertices, items, threshold=0.8):
 # - generate a graph, and a random two items, which we will associate
 # - for each trial, turn on 80% of the first item randomly, check if the second item is on
 
-def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, timesteps=50, max_weight=10):
+def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, num_iterations=50, num_checks= 20, max_weight=10, threshold=20):
+    start = time.time()
+    
+    if graph:
+        incoming_vertices, outgoing_vertices = graph
+    else:
+        incoming_vertices, outgoing_vertices = gen_graph.gen_graph_vertices(l,w,degree)
+    
+    weights = {}
+
+    for coordinate in outgoing_vertices:
+        for connection in outgoing_vertices[coordinate]:
+            weights[(coordinate, connection)] = 1
+    
+    points = np.arange(l*w)
+
+    items = {}
+
+    #holds associations for a list of (fromItem, toItem) tuples
+    associationsList = []
+
+    #for a key fromItem, holds a list of toItems to which it is associated
+    associationsDict = {}
+
+    #keys tuples of memorizated items, value is the memorized conjunction
+    memorizations = {}
+
+    #creates random items
+    for i in range(num_items):
+        items[i] = set(sample_r_randomly(points, r))
+
+    #creates random associations between items
+    num_failed_associations = 0.0
+
+    for i in range(num_associations):
+        fromItem, toItem = np.random.choice(num_items, 2, replace=False)  
+
+        #keep choosing items until we find items that can be associated with each other
+        potential_overlap = getPotentialOverlap(fromItem, toItem, incoming_vertices, outgoing_vertices, items, maxSynapseStrength=max_weight, threshold=threshold)
+        
+        while potential_overlap < 0.8:
+            num_failed_associations += 1
+
+            fromItem, toItem = np.random.choice(num_items, 2, replace=False)  
+
+            #keep choosing items until we find items that can be associated with each other
+            potential_overlap = getPotentialOverlap(fromItem, toItem, incoming_vertices, outgoing_vertices, items, maxSynapseStrength=max_weight, threshold=threshold)
+            
+
+        associationsList.append((fromItem, toItem))
+
+        if fromItem not in associationsDict:
+            associationsDict[fromItem] = []
+
+        associationsDict[fromItem].append(toItem)
+
+        #maxes the edge weight for each vertex combination
+        fromItemVertices = items[fromItem]
+        toItemVertices = items[toItem]
+
+        for fromItemVertex in fromItemVertices:
+            for toItemVertex in toItemVertices:
+                if (fromItemVertex, toItemVertex) in weights:
+                    weights[(fromItemVertex, toItemVertex)] = max_weight
+
+
+    elapsed = time.time() - start
+    print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
+
+    print num_failed_associations, "failed associations;", num_associations, "successful associations"
+
+
+    #runs the simulation
+    num_successful_on = 0.0
+    num_successful_off = 0.0
+
+    for i in range(num_iterations):
+
+        #choose a random association   
+        random_association_index = random.randint(0,num_associations-1)        
+        fromItem, toItem = associationsList[random_association_index]
+
+        
+        num_successful_on += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
+        num_successful_off += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
+
+    return num_failed_associations/(num_failed_associations+num_associations), num_successful_on/(num_iterations * num_checks), num_successful_off/(num_iterations * num_checks)
+
+
+
+#returns True of False based on if there is a simulated association between fromItem and toItem
+def simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh=0.85, threshold=20, num_checks=20):
+    incoming_vertices, outgoing_vertices = graph
+
+    #gets the vertices for each item
+    fromItemVertices = items[fromItem]
+
+    num_successful_checks = 0.0
+    overlap_amount = 0.0
+    overlaps = []
+
+    #fires the set of firing vertices
+    for i in range(num_checks):
+        firing_vertices = fire_item(fromItemVertices, fire_thresh)
+
+        #gets the next set of firing vertices
+        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices, weights, threshold)
+
+        #gets the list of items from the associated firing vertices
+        firing_items = set(getActiveItems(firing_vertices, items))
+
+        num_successful_checks += (toItem in firing_items)
+
+        #calculates the amount of vertices firing
+        correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
+        overlap_amount += correctly_firing
+
+        overlaps.append(correctly_firing)
+
+    #checks if item 2 was identified as associated
+    #return num_successful_checks
+    return overlap_amount
+
+#returns True of False based on if there is not a simulated association between fromItem and toItem
+def simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh=0.85, threshold=20, num_other_items=0, num_checks=20):
+    incoming_vertices, outgoing_vertices = graph
+
+    #gets the vertices for each item
+    fromItemVertices = items[fromItem]    
+
+    #fire num_other_items other random items, as long as these items
+    #are not associated with toItem
+    item_keys = items.keys()
+    item_keys.remove(fromItem)
+    item_keys.remove(toItem)
+
+    num_successful_checks = 0.0
+    overlap_amount = 0.0
+    overlaps = []
+
+    for j in range(num_checks):
+        #fires only a small portion of the set of firing vertices
+        firing_vertices = fire_item(fromItemVertices, 1-fire_thresh)
+
+
+        for i in range(num_other_items):
+            random_item_index = random.randint(0, len(item_keys)-1)
+            random_item = item_keys[random_item_index]
+
+            #keeps choosing a random item until we find one that is not 
+            #associated with toItem
+            while random_item in associationsDict and toItem in associationsDict[random_item]:
+                random_item_index = random.randint(0, len(item_keys))
+                random_item = item_keys[random_item_index]
+                random_item_vertices = items[random_item]
+
+            #turns this random item on
+            firing_vertices = set.union(firing_vertices, fire_item(random_item_vertices, fire_thresh))
+
+
+        #gets the next set of firing vertices
+        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices, weights, threshold)
+
+        #gets the list of items from the associated firing vertices
+        firing_items = set(getActiveItems(firing_vertices, items))
+
+        #checks if item 2 was not identified as associated
+        num_successful_checks += (toItem in firing_items)
+
+        #calculates the amount of vertices firing
+        correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
+        overlap_amount += correctly_firing
+
+    #return num_successful_checks
+    return overlap_amount
+
+
+def simulate_one(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, max_weight=10):
     start = time.time()
     
     if graph:
@@ -121,25 +298,20 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     #keys tuples of memorizated items, value is the memorized conjunction
     memorizations = {}
 
-    #creates random items
-    for i in range(num_items):
-        items[i] = set(sample_r_randomly(points, r))
+    #creates two random items
+    item1 = set(sample_r_randomly(points, r))
+    item2 = set(sample_r_randomly(points, r))
 
-    #creates random associations between items
-    for i in range(num_associations):
-        fromItem, toItem = np.random.choice(num_items, 2)
-        if fromItem not in associations:
-            associations[fromItem] = []
-        associations[fromItem].append(toItem)
+    items = {1: item1, 2: item2}
+    
 
-        #maxes the edge weight for each vertex combination
-        fromItemVertices = items[fromItem]
-        toItemVertices = items[toItem]
+    #creates an associations between these two items
+    #associations[item1].append(item2)   
 
-        for fromItemVertex in fromItemVertices:
-            for toItemVertex in toItemVertices:
-                if (fromItemVertex, toItemVertex) in weights:
-                    weights[(fromItemVertex, toItemVertex)] = max_weight
+    for fromItemVertex in item1:
+        for toItemVertex in item2:
+            if (fromItemVertex, toItemVertex) in weights:
+                weights[(fromItemVertex, toItemVertex)] = max_weight
 
 
     elapsed = time.time() - start
@@ -148,29 +320,27 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
 
     #runs the simulation for each time step
 
-    #start with a random item, and fire its vertices    
-    random_item = random.randint(0,num_items-1)
-    firing_items = [random_item]
-    firing_vertices = fire_item(items[random_item], fire_thresh)
+    #start with a random item, and fire its vertices        
+    firing_vertices = fire_item(item1, fire_thresh)
+    
+    #gets the items associated with item1
+    #associated_items = associations[item1]
 
-    for i in range(timesteps):     
-        #gets the list of associated items for each currently firing item
-        associated_items = []
-        for x in firing_items:
-            associated_items += associations.get(x, [])
-        associated_items = set(associated_items)
+    #gets the next set of firing vertices
+    firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices, weights)
 
-        #gets the next set of firing vertices
-        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices, weights)
+    #gets the list of items from the associated firing vertices
+    firing_items = set(getActiveItems(firing_vertices, items))
 
-        #gets the list of items from the associated firing vertices
-        firing_items = set(getActiveItems(firing_vertices, items))
-        print len(firing_vertices), len(associated_items), len(firing_items.intersection(associated_items)), len(firing_items)
+    print len(firing_vertices), "neurons firing"
+    #print associatedItems, " (associated items)"
+    print firing_items, " (firing items)"
+
 
 # how do we determine if we should be activating a memorization?
 # alternatively, in each timestep we could simulate a few things, i.e, particular associations and memorizations
 
-def simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, fire_thresh=0.85)
+def simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, fire_thresh=0.85):
     """
     we assume that mem_item is stored as the meorization of item1 and item2
     will activate the nodes in item1 and item2, see if we activate nodes in mem_item
@@ -192,7 +362,7 @@ def simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, 
     return None
 
 
-def get_active_set(graph, firing_vertices, weights = False, threshold = 50):
+def get_active_set(graph, firing_vertices, weights = False, threshold = 20):
     """
     runs the simulation for one time point, with the firing_vertices being the list/set of nodes that are active in the current time point
     threshold, min number of active neighbors
