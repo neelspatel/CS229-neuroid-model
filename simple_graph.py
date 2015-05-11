@@ -475,7 +475,7 @@ def simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, 
         results.append(cur_result)
     return results
 
-def simulate_memorization_off_aux(graph, weights, item1, item2, mem_item, items, r, fire_thresh=0.85, trials=1):
+def simulate_memorization_off_aux(graph, weights, item1, item2, mem_item, items, r, num_aux = 4, fire_thresh=0.85, trials=1):
     """
     we assume that mem_item is stored as the meorization of item1 and item2
     will deactive both items, activate random item that is not associated with mem_item
@@ -483,21 +483,15 @@ def simulate_memorization_off_aux(graph, weights, item1, item2, mem_item, items,
     results = []
     no_fire_thresh = 1-fire_thresh
     for trial in range(trials):
-        # choose random number of items to turn on
-        aux_items = np.random.choice(items.keys(), random.choice(range(1, 4)))
-        # check if these auxillary items are associated with mem_item 
-        
-        # activate neurons of both item sets
-        # first, turn off both vertex sets
+        aux_items = np.random.choice(items.keys(), max_num_aux, replace=False)
         firing_vertices = set.union(fire_item(items[item1], no_fire_thresh), fire_item(items[item2], no_fire_thresh))
         for aux_item in aux_items:
-            firing_vertices = set.union(firing_vertices, fire_items(items[aux_item], fire_thresh))
+            if aux_item == item1 or aux_item == item2:
+                aux_item = random.choice(items.keys())
+            firing_vertices = set.union(firing_vertices, fire_item(items[aux_item], weights))
         firing_vertices = get_active_set(graph, firing_vertices, weights)
-        firing_items = getActiveItems(firing_vertices, items)
-        if mem_item not in firing_items: 
-            results.append(True)
-        else:
-            results.append(False)
+        firing_rate = len(set.intersect(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
+        results.append(firing_rate)
     return results
 
 def get_active_set(graph, firing_vertices, weights = False, threshold = 20):
