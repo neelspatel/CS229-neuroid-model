@@ -184,6 +184,10 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     #runs the simulation
     on_results = []
     off_results = []
+    off_1_results = []
+    off_2_results = []
+    #off_3_results = []
+    #off_4_results = []
     mem_on_results = []
     mem_off_results = []
     num_successful_on = 0.0
@@ -197,6 +201,9 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
        
         on_results += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
         off_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
+        off_1_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_other_items=1, num_checks=num_checks)
+        off_2_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_other_items=2, num_checks=num_checks)
+
 
         # choose a memorization
         item1, item2 = random.choice(memorizations.keys())
@@ -207,7 +214,7 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
   
     #return num_failed_associations/(num_failed_associations+num_associations), sum(on_results)/float(len(on_results)), sum(off_results)/float(len(off_results)), sum(mem_on_results)/float(len(mem_on_results)), sum(mem_off_results)/float(len(mem_off_results))
 
-    return num_failed_associations, on_results, off_results, mem_on_results, mem_off_results
+    return num_failed_associations, on_results, off_results, off_1_results, off_2_results, mem_on_results, mem_off_results
 
 
 #returns True of False based on if there is a simulated association between fromItem and toItem
@@ -272,9 +279,10 @@ def simulate_association_off(graph, weights, fromItem, toItem, items, associatio
             #keeps choosing a random item until we find one that is not 
             #associated with toItem
             while random_item in associationsDict and toItem in associationsDict[random_item]:
-                random_item_index = random.randint(0, len(item_keys))
+                random_item_index = random.randint(0, len(item_keys)-1)
                 random_item = item_keys[random_item_index]
-                random_item_vertices = items[random_item]
+            
+            random_item_vertices = items[random_item]
 
             #turns this random item on
             firing_vertices = set.union(firing_vertices, fire_item(random_item_vertices, fire_thresh))
@@ -578,7 +586,7 @@ def make_memorization(graph, weights, item1, item2, items, r, max_synapse_streng
         for item_vert in set.union(items[item1], items[item2]):
             for mem_vert in candidate_verts:
                 if (item_vert, mem_vert) in weights:
-                    weights[(item_vert, mem_vert)] = max_synapse_strength/2
+                    weights[(item_vert, mem_vert)] = max_synapse_strength/4
     else:
         # memorization was not possible for these two items
         return graph, weights, None, items
