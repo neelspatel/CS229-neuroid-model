@@ -107,10 +107,7 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     for coordinate in outgoing_vertices:
         for connection in outgoing_vertices[coordinate]:
             weights[(coordinate, connection)] = 1
-
-    elapsed = time.time() - start
-    print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
-
+    
     points = np.arange(l*w)
 
     items = {}
@@ -137,6 +134,9 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
             for toItemVertex in toItemVertices:
                 weights[(fromItemVertex, toItemVertex)] = max_weight
 
+
+    elapsed = time.time() - start
+    print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
 
 
     #runs the simulation for each time step
