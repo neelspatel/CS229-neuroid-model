@@ -105,7 +105,6 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     elapsed = time.time() - start
     print "%fs (l=%d, w=%d, degree=%d, r=%d)" % (elapsed, l, w, degree, r)
 
-
     points = np.arange(l*w)
 
     items = {}
@@ -120,10 +119,8 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     #creates random associations between items
     for i in range(num_associations):
         fromItem, toItem = np.random.choice(num_items, 2)
-
         if fromItem not in associations:
             associations[fromItem] = []
-
         associations[fromItem].append(toItem)
 
     #runs the simulation for each time step
@@ -133,8 +130,7 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
     firing_items = [random_item]
     firing_vertices = fire_item(items[random_item], fire_thresh)
 
-    for i in range(timesteps):     
-
+    for i in range(2):     
         #gets the list of associated items for each currently firing item
         associated_items = []
         for x in firing_items:
@@ -148,13 +144,10 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
 
         #gets the list of items from the associated firing vertices
         firing_items = set(getActiveItems(firing_vertices, items))
-        
+        print len(firing_vertices)
         print len(firing_items.intersection(associated_items)), len(firing_items)
 
-        
 
-
-       
 
 def get_active_set(graph, firing_vertices, threshold = 5):
     """
