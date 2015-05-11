@@ -99,7 +99,7 @@ def getActiveItems(vertices, items, threshold=0.8):
 # - generate a graph, and a random two items, which we will associate
 # - for each trial, turn on 80% of the first item randomly, check if the second item is on
 
-def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, num_iterations=50, num_checks= 20, max_weight=10, threshold=20):
+def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, num_memorizations=20, num_iterations=50, num_checks= 20, max_weight=10, threshold=20):
     start = time.time()
     
     if graph:
@@ -182,6 +182,14 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
 
 
     #runs the simulation
+    on_results = []
+    off_results = []
+    off_1_results = []
+    off_2_results = []
+    #off_3_results = []
+    #off_4_results = []
+    mem_on_results = []
+    mem_off_results = []
     num_successful_on = 0.0
     num_successful_off = 0.0
 
@@ -190,18 +198,23 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=
         #choose a random association   
         random_association_index = random.randint(0,num_associations-1)        
         fromItem, toItem = associationsList[random_association_index]
+       
+        on_results += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
+        off_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
+        off_1_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_other_items=1, num_checks=num_checks)
+        off_2_results += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_other_items=2, num_checks=num_checks)
 
-        num_successful_on += simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh, num_checks=num_checks)
-        num_successful_off += simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh, num_checks=num_checks)        
-        
+
         # choose a memorization
-        item1, item2 = random.choice(memorization.keys())
+        item1, item2 = random.choice(memorizations.keys())
         mem_item = memorizations[(item1, item2)]
-        mem_success_on = simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
-        mem_success_off = simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
+        mem_on_results += simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
+        mem_off_results += simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, trials=num_checks)
                 
-    return num_failed_associations/(num_failed_associations+num_associations), num_successful_on/(num_iterations * num_checks), num_successful_off/(num_iterations * num_checks)
+  
+    #return num_failed_associations/(num_failed_associations+num_associations), sum(on_results)/float(len(on_results)), sum(off_results)/float(len(off_results)), sum(mem_on_results)/float(len(mem_on_results)), sum(mem_off_results)/float(len(mem_off_results))
 
+    return num_failed_associations, on_results, off_results, off_1_results, off_2_results, mem_on_results, mem_off_results
 
 
 #returns True of False based on if there is a simulated association between fromItem and toItem
@@ -229,13 +242,13 @@ def simulate_association_on(graph, weights, fromItem, toItem, items, fire_thresh
 
         #calculates the amount of vertices firing
         correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
-        overlap_amount += correctly_firing
 
         overlaps.append(correctly_firing)
 
     #checks if item 2 was identified as associated
     #return num_successful_checks
-    return overlap_amount
+    #return overlap_amount
+    return overlaps
 
 #returns True of False based on if there is not a simulated association between fromItem and toItem
 def simulate_association_off(graph, weights, fromItem, toItem, items, associationsDict, fire_thresh=0.85, threshold=20, num_other_items=0, num_checks=20):
@@ -266,9 +279,10 @@ def simulate_association_off(graph, weights, fromItem, toItem, items, associatio
             #keeps choosing a random item until we find one that is not 
             #associated with toItem
             while random_item in associationsDict and toItem in associationsDict[random_item]:
-                random_item_index = random.randint(0, len(item_keys))
+                random_item_index = random.randint(0, len(item_keys)-1)
                 random_item = item_keys[random_item_index]
-                random_item_vertices = items[random_item]
+            
+            random_item_vertices = items[random_item]
 
             #turns this random item on
             firing_vertices = set.union(firing_vertices, fire_item(random_item_vertices, fire_thresh))
@@ -285,10 +299,11 @@ def simulate_association_off(graph, weights, fromItem, toItem, items, associatio
 
         #calculates the amount of vertices firing
         correctly_firing = len(firing_vertices.intersection(items[toItem])) / float(len(items[toItem]))
-        overlap_amount += correctly_firing
+        overlaps.append(correctly_firing)
 
     #return num_successful_checks
-    return overlap_amount
+    #return overlap_amount
+    return overlaps
 
 
 def simulate_one(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, max_weight=10):
@@ -445,7 +460,7 @@ def simulate_memorization_on(graph, weights, item1, item2, mem_item, items, r, f
         # activate neurons of both item sets
         firing_vertices = set.union(fire_item(items[item1], fire_thresh), fire_item(items[item2], fire_thresh))
         firing_vertices = get_active_set(graph, firing_vertices, weights)
-        firing_rate = len(set.intersect(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
+        firing_rate = len(set.intersection(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
         results.append(firing_rate)
     return results
 
@@ -463,15 +478,15 @@ def simulate_memorization_off(graph, weights, item1, item2, mem_item, items, r, 
         # first, turn off both vertex sets
         firing_vertices = set.union(fire_item(items[item1], no_fire_thresh), fire_item(items[item2], no_fire_thresh))
         firing_vertices = get_active_set(graph, firing_vertices, weights)
-        cur_result[0] = len(set.intersect(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
+        cur_result[0] = len(set.intersection(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
         # now, turn on one of the vertex sets 
         firing_vertices = set.union(fire_item(items[item1], no_fire_thresh), fire_item(items[item2], fire_thresh))
         firing_vertices = get_active_set(graph, firing_vertices, weights)
-        cur_result[1] = len(set.intersect(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
+        cur_result[1] = len(set.intersection(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
         # turn off the other vertex set 
         firing_vertices = set.union(fire_item(items[item1], fire_thresh), fire_item(items[item2], no_fire_thresh))
         firing_vertices = get_active_set(graph, firing_vertices, weights)
-        cur_result[2] = len(set.intersect(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
+        cur_result[2] = len(set.intersection(items[mem_item], firing_vertices)) / float(len(items[mem_item]))
         results.append(cur_result)
     return results
 
@@ -565,7 +580,7 @@ def make_memorization(graph, weights, item1, item2, items, r, max_synapse_streng
         for item_vert in set.union(items[item1], items[item2]):
             for mem_vert in candidate_verts:
                 if (item_vert, mem_vert) in weights:
-                    weights[(item_vert, mem_vert)] = max_synapse_strength/2
+                    weights[(item_vert, mem_vert)] = max_synapse_strength/4
     else:
         # memorization was not possible for these two items
         return graph, weights, None, items
