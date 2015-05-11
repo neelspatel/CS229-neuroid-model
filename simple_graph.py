@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import gen_graph
+import random
 
 def sample_r_randomly(vertices, r):
     idx = np.random.choice(len(vertices), r)   
@@ -77,7 +78,7 @@ def getActiveItems(vertices, items, threshold=0.8):
     for item in items.keys():
         item_vertices = items[item]
 
-        overlap = vertices_set.intersect(item_vertices)
+        overlap = vertices_set.intersection(item_vertices)  
 
         #if more than threshold percentage of the neurons in this item
         #are firing
@@ -93,7 +94,7 @@ def getActiveItems(vertices, items, threshold=0.8):
 #create amount of random associations (from one item id to another item id)
 #function that creates association: turn on this item, keep dictionary of items
 #and items that they are associated with
-def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, num_items=2, num_associations=2):
+def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, fire_thresh=0.85, num_items=2, num_associations=2, timesteps=50):
     start = time.time()
     
     if graph:
@@ -106,7 +107,6 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, num_items=2,
 
 
     points = np.arange(l*w)
-    overlaps = [0 for i in range(n)]
 
     items = {}
 
@@ -126,7 +126,33 @@ def simulation(graph=None, l = 100, w = 100, degree = 100, r = 200, num_items=2,
 
         associations[fromItem].append(toItem)
 
-    
+    #runs the simulation for each time step
+
+    #start with a random item, and fire its vertices    
+    random_item = random.randint(0,num_items-1)
+    firing_items = [random_item]
+    firing_vertices = fire_item(items[random_item], fire_thresh)
+
+    for i in range(timesteps):     
+
+        #gets the list of associated items for each currently firing item
+        associated_items = []
+        for x in firing_items:
+            associated_items += associations.get(x, [])
+        associated_items = set(associated_items)
+
+        #gets the next set of firing vertices
+        firing_vertices = get_active_set((incoming_vertices, outgoing_vertices), firing_vertices)
+
+        print len(firing_vertices)
+
+        #gets the list of items from the associated firing vertices
+        firing_items = set(getActiveItems(firing_vertices, items))
+        
+        print len(firing_items.intersection(associated_items)), len(firing_items)
+
+        
+
 
        
 
