@@ -68,4 +68,22 @@ def testPotentialOverlap(graph=None, l = 100, w = 100, degree = 100, r = 200, n 
 #overlaps = testPotentialOverlap(n=10)
 
 
+def get_active_set(graph, firing_vertices, threshold = 5):
+    """
+    runs the simulation for one time point, with the firing_vertices being the list/set of nodes that are active in the current time point
+    threshold, min number of active neighbors
+    returns the set of nodes that are firing at next time point
+    """
+    outgoing_vertices, incoming_vertices = graph
+    next_firing = set([])
+    thresh = {}
+    for vert in firing_vertices:
+        for cur_vert in outgoing_vertices[vert]:
+            if cur_vert not in next_firing:
+                #TODO add weight logic
+                # thresh[cur_vert] += weight_ougoing_vertices[vert][cur_vert]
+                thresh[cur_vert] += 1
+                if thresh[cur_vert] >= threshold:
+                    next_firing.add(cur_vert)
+    return next_firing
 
