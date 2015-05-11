@@ -66,9 +66,7 @@ def testPotentialOverlap(graph=None, l = 100, w = 100, degree = 100, r = 200, n 
     return overlaps
 
 #overlaps = testPotentialOverlap(n=10)
-
-
-def get_active_set(graph, firing_vertices, threshold = 5):
+def get_active_set(graph, firing_vertices, threshold=5):
     """
     runs the simulation for one time point, with the firing_vertices being the list/set of nodes that are active in the current time point
     threshold, min number of active neighbors
